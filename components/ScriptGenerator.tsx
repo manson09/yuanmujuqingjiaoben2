@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RotateCcw, Download, Sparkles, AlertCircle, Map, Users } from 'lucide-react';
-import { KnowledgeFile, FileType, FrequencyMode, ScriptSegment, GlobalContextHandler } from '../types';
+import { Play, RotateCcw, Download, Sparkles, AlertCircle, Map, Users, Zap, Feather } from 'lucide-react';
+import { KnowledgeFile, FileType, FrequencyMode, ScriptSegment, GlobalContextHandler, ModelTier } from '../types';
 import { generateScriptSegment } from '../services/geminiService';
 
 interface ScriptGeneratorProps {
@@ -20,8 +20,9 @@ const ScriptGenerator: React.FC<ScriptGeneratorProps> = ({ files, addGeneratedFi
   const [selectedOutlineId, setSelectedOutlineId] = useState<string>(''); 
   const [selectedFormatId, setSelectedFormatId] = useState<string>('');
   const [selectedStyleId, setSelectedStyleId] = useState<string>('');
-  const [selectedBibleId, setSelectedBibleId] = useState<string>(''); // New
+  const [selectedBibleId, setSelectedBibleId] = useState<string>(''); 
   const [mode, setMode] = useState<FrequencyMode>(FrequencyMode.MALE);
+  const [modelTier, setModelTier] = useState<ModelTier>(ModelTier.CREATIVE_PRO); // Default to Creative
   const [episodeStart, setEpisodeStart] = useState<number>(1);
   
   const [segments, setSegments] = useState<ScriptSegment[]>([]);
@@ -114,11 +115,12 @@ const ScriptGenerator: React.FC<ScriptGeneratorProps> = ({ files, addGeneratedFi
         formatRef?.content || "",
         styleRef?.content || "",
         outlineRef?.content || "", 
-        bibleRef?.content || "", // Pass Bible Content
+        bibleRef?.content || "", 
         mode,
         rangeLabel,
         previousSummary,
-        previousEndContent 
+        previousEndContent,
+        modelTier // Pass selected tier
       );
 
       setSegments(prev => prev.map(s => 
@@ -168,13 +170,58 @@ const ScriptGenerator: React.FC<ScriptGeneratorProps> = ({ files, addGeneratedFi
              });
           }
       }
-  }, [segments.length, registerContext]); // Minimal dependency to avoid loop
+  }, [segments.length, registerContext]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
       {/* Sidebar Controls */}
       <div className="lg:col-span-3 space-y-6">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4 sticky top-24">
+          
+          {/* Model Switcher */}
+          <div className="space-y-2 pb-4 border-b border-slate-100">
+             <h4 className="font-semibold text-slate-800 text-sm">选择 AI 引擎</h4>
+             <div className="grid grid-cols-1 gap-2">
+                <button
+                    onClick={() => setModelTier(ModelTier.CREATIVE_PRO)}
+                    className={`relative p-3 rounded-xl text-left border transition-all ${
+                        modelTier === ModelTier.CREATIVE_PRO
+                        ? 'bg-gradient-to-br from-indigo-50 to-violet-50 border-indigo-200 shadow-sm'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm font-bold flex items-center gap-1 ${modelTier === ModelTier.CREATIVE_PRO ? 'text-indigo-700' : 'text-slate-600'}`}>
+                           <Feather size={14} /> 沉浸文笔版
+                        </span>
+                        {modelTier === ModelTier.CREATIVE_PRO && <div className="w-2 h-2 rounded-full bg-indigo-500" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                        模拟高级写手。文笔细腻，潜台词丰富，适合精修剧本。
+                    </p>
+                </button>
+
+                <button
+                    onClick={() => setModelTier(ModelTier.LOGIC_FAST)}
+                    className={`relative p-3 rounded-xl text-left border transition-all ${
+                        modelTier === ModelTier.LOGIC_FAST
+                        ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-sm'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                         <span className={`text-sm font-bold flex items-center gap-1 ${modelTier === ModelTier.LOGIC_FAST ? 'text-emerald-700' : 'text-slate-600'}`}>
+                           <Zap size={14} /> 极速逻辑版
+                        </span>
+                        {modelTier === ModelTier.LOGIC_FAST && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                        模拟逻辑大脑。速度快，结构强，适合快速测试剧情走向。
+                    </p>
+                </button>
+             </div>
+          </div>
+
           <div className="space-y-4 pb-4 border-b border-slate-100">
              <h4 className="font-semibold text-slate-800 text-sm">输入素材</h4>
              <div>
@@ -281,7 +328,9 @@ const ScriptGenerator: React.FC<ScriptGeneratorProps> = ({ files, addGeneratedFi
              <button
                 onClick={() => handleGenerate()}
                 disabled={isGenerating || !selectedNovelId}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white ${
+                    modelTier === ModelTier.CREATIVE_PRO ? 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
              >
                 {isGenerating ? (
                    <>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Map, Save, Sparkles, BookOpen, AlertCircle, Download, Wand2, FileText, LayoutTemplate } from 'lucide-react';
-import { KnowledgeFile, FileType, FrequencyMode, GlobalContextHandler } from '../types';
+import { Map, Save, Sparkles, BookOpen, AlertCircle, Download, Wand2, FileText, LayoutTemplate, Zap, Feather } from 'lucide-react';
+import { KnowledgeFile, FileType, FrequencyMode, GlobalContextHandler, ModelTier } from '../types';
 import { generateSeasonPlan, analyzeAdaptationFocus, generatePlotSummary } from '../services/geminiService';
 
 interface SeasonPlannerProps {
@@ -22,6 +22,7 @@ const SeasonPlanner: React.FC<SeasonPlannerProps> = ({ files, addGeneratedFile, 
   const [episodeCount, setEpisodeCount] = useState('60-100');
   const [focusInstructions, setFocusInstructions] = useState('');
   const [mode, setMode] = useState<FrequencyMode>(FrequencyMode.MALE);
+  const [modelTier, setModelTier] = useState<ModelTier>(ModelTier.CREATIVE_PRO); // Default to Creative
   
   // Tab State
   const [activeTab, setActiveTab] = useState<TabMode>('STRUCTURE');
@@ -79,7 +80,8 @@ const SeasonPlanner: React.FC<SeasonPlannerProps> = ({ files, addGeneratedFile, 
         seasonName,
         episodeCount,
         focusInstructions,
-        mode
+        mode,
+        modelTier
       );
       setGeneratedPlan(plan);
     } catch (err) {
@@ -181,6 +183,50 @@ const SeasonPlanner: React.FC<SeasonPlannerProps> = ({ files, addGeneratedFile, 
              <h3 className="font-bold text-lg">季度改编规划</h3>
           </div>
 
+          {/* Model Switcher */}
+          <div className="space-y-2 pb-4 border-b border-slate-100">
+             <h4 className="font-semibold text-slate-800 text-sm">选择 AI 引擎</h4>
+             <div className="grid grid-cols-1 gap-2">
+                <button
+                    onClick={() => setModelTier(ModelTier.CREATIVE_PRO)}
+                    className={`relative p-3 rounded-xl text-left border transition-all ${
+                        modelTier === ModelTier.CREATIVE_PRO
+                        ? 'bg-gradient-to-br from-indigo-50 to-violet-50 border-indigo-200 shadow-sm'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm font-bold flex items-center gap-1 ${modelTier === ModelTier.CREATIVE_PRO ? 'text-indigo-700' : 'text-slate-600'}`}>
+                           <Feather size={14} /> 沉浸文笔版
+                        </span>
+                        {modelTier === ModelTier.CREATIVE_PRO && <div className="w-2 h-2 rounded-full bg-indigo-500" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                        模拟高级编剧。逻辑严密，细节丰富，适合正式规划。
+                    </p>
+                </button>
+
+                <button
+                    onClick={() => setModelTier(ModelTier.LOGIC_FAST)}
+                    className={`relative p-3 rounded-xl text-left border transition-all ${
+                        modelTier === ModelTier.LOGIC_FAST
+                        ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-sm'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-1">
+                         <span className={`text-sm font-bold flex items-center gap-1 ${modelTier === ModelTier.LOGIC_FAST ? 'text-emerald-700' : 'text-slate-600'}`}>
+                           <Zap size={14} /> 极速逻辑版
+                        </span>
+                        {modelTier === ModelTier.LOGIC_FAST && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                        模拟快速构思。速度快，适合快速出大纲草稿。
+                    </p>
+                </button>
+             </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">1. 选择原著小说</label>
             <select
@@ -268,7 +314,9 @@ const SeasonPlanner: React.FC<SeasonPlannerProps> = ({ files, addGeneratedFile, 
              <button
                 onClick={handleGeneratePlan}
                 disabled={isGeneratingPlan || !selectedNovelId}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white bg-indigo-600 hover:bg-indigo-700`}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white ${
+                    modelTier === ModelTier.CREATIVE_PRO ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
              >
                 {isGeneratingPlan ? (
                    <>

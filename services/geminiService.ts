@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTION_BASE, MALE_FREQ_INSTRUCTION, FEMALE_FREQ_INSTRUCTION } from "../constants";
-import { FrequencyMode, CharacterProfile, ChatMessage } from "../types";
+import { FrequencyMode, CharacterProfile, ChatMessage, ModelTier } from "../types";
 
 // Helper to get client (ensure fresh key use)
 const getClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -54,10 +54,14 @@ export const generateSeasonPlan = async (
   seasonName: string,
   episodeCount: string,
   focusInstructions: string,
-  mode: FrequencyMode 
+  mode: FrequencyMode,
+  modelTier: ModelTier = ModelTier.CREATIVE_PRO // Add modelTier support
 ): Promise<string> => {
   const ai = getClient();
-  const model = "gemini-3-pro-preview"; 
+  
+  // Route model based on tier
+  // Planning usually benefits from Pro's reasoning, but Flash is faster for quick iterations.
+  const model = modelTier === ModelTier.LOGIC_FAST ? "gemini-3-flash-preview" : "gemini-3-pro-preview";
 
   const modeInstruction = mode === FrequencyMode.MALE ? MALE_FREQ_INSTRUCTION : FEMALE_FREQ_INSTRUCTION;
 
@@ -96,7 +100,7 @@ export const generateSeasonPlan = async (
       contents: prompt,
       config: {
         systemInstruction: `你是一名专业的动画IP改编架构师，擅长宏观叙事与节奏把控。\n${modeInstruction}`,
-        temperature: 0.6,
+        temperature: modelTier === ModelTier.CREATIVE_PRO ? 0.7 : 0.5,
       }
     });
     return response.text || "生成大纲失败，请重试。";
@@ -111,18 +115,35 @@ export const generateScriptSegment = async (
   formatContent: string,
   styleContent: string,
   outlineContent: string,
-  characterBibleContent: string, // New parameter for consistency
+  characterBibleContent: string, 
   mode: FrequencyMode,
   episodeRange: string,
   previousSummary: string,
-  previousEndContent: string = ""
+  previousEndContent: string = "",
+  modelTier: ModelTier = ModelTier.CREATIVE_PRO // Default to high quality
 ): Promise<{ content: string; summary: string }> => {
   const ai = getClient();
   
   const modeInstruction = mode === FrequencyMode.MALE ? MALE_FREQ_INSTRUCTION : FEMALE_FREQ_INSTRUCTION;
   
-  const fullSystemInstruction = `${SYSTEM_INSTRUCTION_BASE}\n${modeInstruction}`;
-  const model = "gemini-3-pro-preview";
+  // Model Routing Logic
+  // LOGIC_FAST -> gemini-3-flash-preview (Speed, Efficiency)
+  // CREATIVE_PRO -> gemini-3-pro-preview (Nuance, Subtext, "Claude-like" capability)
+  const modelName = modelTier === ModelTier.LOGIC_FAST ? "gemini-3-flash-preview" : "gemini-3-pro-preview";
+  
+  // Enhance system instruction for Creative Pro tier
+  let tierInstruction = "";
+  if (modelTier === ModelTier.CREATIVE_PRO) {
+      tierInstruction = `
+      【高阶创作模式已激活】
+      你现在的角色是金牌编剧。请注意：
+      1. **拒绝流水账**：不要平铺直叙。使用侧面描写、环境烘托、微表情来传达信息。
+      2. **强化潜台词**：人物对话不要过于直白，要体现人物的性格底色和言外之意。
+      3. **镜头感**：文字必须具有极强的画面指引性，每一行都要能被原画师直接想象成画面。
+      `;
+  }
+
+  const fullSystemInstruction = `${SYSTEM_INSTRUCTION_BASE}\n${modeInstruction}\n${tierInstruction}`;
 
   const prompt = `
   【当前任务】：请根据提供的原著小说内容，创作改编第【${episodeRange}】集的2D动漫剧情脚本。
@@ -167,11 +188,11 @@ export const generateScriptSegment = async (
 
   try {
     const response = await ai.models.generateContent({
-      model,
+      model: modelName,
       contents: prompt,
       config: {
         systemInstruction: fullSystemInstruction,
-        temperature: 0.7, 
+        temperature: modelTier === ModelTier.CREATIVE_PRO ? 0.8 : 0.6, // Higher creative temp for Pro
       }
     });
 
@@ -313,17 +334,48 @@ export const streamChatResponse = async function* (
   const ai = getClient();
   const model = "gemini-3-flash-preview";
 
+  const chatInstruction = `
+  你是一个嵌入在‘漫改智脑’系统中的高级智能体 (Agent)。
+  你的职责不仅是回答问题，还要根据用户的意图控制系统导航。
+
+  【能力与工具】
+  系统包含以下核心工作台：
+  1. 知识库 (KNOWLEDGE_BASE): 上传小说、参考资料。
+  2. 季度规划 (SEASON_PLANNER): 负责宏观大纲、分集结构。这是编剧的第一步。
+  3. 脚本生成 (SCRIPT_GENERATOR): 负责具体写剧本。如果用户提到 "Claude", "文笔好", "写正文", 请引导至此。
+  4. 人物提取 (OUTLINE_GENERATOR): 负责提取人设。
+
+  【控制协议】
+  如果用户要求进行某项特定任务，请在回复的开头使用特殊指令代码进行跳转。
+  指令格式：[[CMD:TARGET_STEP]]
+  
+  TARGET_STEP 可选值：
+  - KNOWLEDGE_BASE
+  - SEASON_PLANNER
+  - SCRIPT_GENERATOR
+  - OUTLINE_GENERATOR
+
+  【示例】
+  用户：“开始写剧本吧” / “用Claude生成第一集”
+  你：“[[CMD:SCRIPT_GENERATOR]] 好的，已为您切换到【剧情脚本生成】工作台。在这里我们将利用高文笔模型进行创作。”
+
+  用户：“我要先做大纲”
+  你：“[[CMD:SEASON_PLANNER]] 没问题，已跳转至【季度改编规划】。”
+
+  如果用户只是闲聊或修改当前文本，则不需要输出指令代码。
+  当前若有编辑器内容传入，请优先处理文本润色任务。
+  `;
+
   // We don't use the 'chat' history object directly because we want to inject dynamic context
   // into the prompt each time.
   const chat = ai.chats.create({
     model,
     config: {
-      systemInstruction: "你是一个嵌入在‘漫改智脑’系统中的AI助手。用户可能正在编写剧本或大纲。如果用户提供了[当前编辑器内容]，你的首要任务是帮助用户修改、润色或续写这部分内容。如果用户要求修改，请直接输出修改后的完整文本，不要多余的废话，以便用户直接复制或应用。"
+      systemInstruction: chatInstruction
     }
   });
 
   // Construct history for the API
-  // We need to map our ChatMessage type to the API's Content type
   const apiHistory = history.filter(h => !h.isStreaming).map(h => ({
     role: h.role,
     parts: [{ text: h.text }]
@@ -341,24 +393,15 @@ ${currentContext.slice(0, 30000)} ... (content truncated if too long)
 
 [用户的指令]:
 ${newMessage}
-
-[你的任务]:
-根据用户的指令修改或回答。如果涉及对内容的修改，请输出修改后的版本。
 `;
   }
 
-  // To simulate history with single-turn context injection properly, we might just pass the prompt.
-  // But strictly following SDK, we should use sendMessageStream. 
-  // We will manually prime the chat history first if needed, but simpler is to just send the message
-  // assuming the instance is fresh. 
-  // *Correction*: To keep history, we should add previous turns to `history` param in `chats.create`.
-  
   // Re-creating chat with history
   const chatWithHistory = ai.chats.create({
     model,
     history: apiHistory,
     config: {
-      systemInstruction: "你是一个嵌入在‘漫改智脑’系统中的AI助手。你的目标是辅助用户进行网文改动漫的创作。当用户要求修改当前内容时，请提供高质量的修改建议。"
+      systemInstruction: chatInstruction
     }
   });
 

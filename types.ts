@@ -30,6 +30,11 @@ export enum FrequencyMode {
   FEMALE = 'FEMALE' // 女频
 }
 
+export enum ModelTier {
+  LOGIC_FAST = 'LOGIC_FAST',       // 对应 Gemini Flash (快，逻辑好，大窗口)
+  CREATIVE_PRO = 'CREATIVE_PRO'    // 对应 Gemini Pro (慢，文笔极佳，拟人度高)
+}
+
 export interface ScriptSegment {
   id: string;
   range: string; // e.g., "1-3集"
@@ -60,4 +65,10 @@ export interface GlobalContextHandler {
   name: string; // e.g. "季度结构规划", "脚本-第1-3集"
   getValue: () => string; // Function to get current editor content
   setValue: (newValue: string) => void; // Function to replace editor content
+}
+
+// New: Agent Control Interface
+export interface AgentController {
+  navigateTo: (step: AppStep) => void;
+  currentStep: AppStep;
 }

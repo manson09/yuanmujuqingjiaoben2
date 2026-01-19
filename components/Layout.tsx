@@ -1,16 +1,17 @@
 import React from 'react';
 import { ArrowLeft, BrainCircuit } from 'lucide-react';
 import GlobalChat from './GlobalChat';
-import { GlobalContextHandler } from '../types';
+import { GlobalContextHandler, AgentController } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
   title: string;
   onBack?: () => void;
   contextHandler?: GlobalContextHandler | null; // Pass context handler to layout
+  agentController?: AgentController; // New prop
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, title, onBack, contextHandler }) => {
+const Layout: React.FC<LayoutProps> = ({ children, title, onBack, contextHandler, agentController }) => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col relative">
       {/* Header */}
@@ -52,7 +53,10 @@ const Layout: React.FC<LayoutProps> = ({ children, title, onBack, contextHandler
       </footer>
 
       {/* Floating Chat */}
-      <GlobalChat contextHandler={contextHandler || null} />
+      <GlobalChat 
+        contextHandler={contextHandler || null} 
+        agentController={agentController}
+      />
     </div>
   );
 };

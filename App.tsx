@@ -5,7 +5,7 @@ import WorkflowSelection from './components/WorkflowSelection';
 import ScriptGenerator from './components/ScriptGenerator';
 import OutlineGenerator from './components/OutlineGenerator';
 import SeasonPlanner from './components/SeasonPlanner';
-import { AppStep, KnowledgeFile, FileType, GlobalContextHandler } from './types';
+import { AppStep, KnowledgeFile, FileType, GlobalContextHandler, AgentController } from './types';
 
 const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.KNOWLEDGE_BASE);
@@ -23,6 +23,18 @@ const App: React.FC = () => {
       uploadDate: Date.now()
     };
     setFiles(prev => [...prev, newFile]);
+  };
+
+  // Define the agent controller to expose app navigation
+  const agentController: AgentController = {
+    navigateTo: (step: AppStep) => {
+      // Logic to safely navigate (e.g., handling context clearing)
+      if (step !== currentStep) {
+        setActiveContext(null); // Clear context when switching views via agent
+        setCurrentStep(step);
+      }
+    },
+    currentStep: currentStep
   };
 
   const renderContent = () => {
@@ -93,6 +105,7 @@ const App: React.FC = () => {
       title={getTitle()} 
       onBack={currentStep !== AppStep.KNOWLEDGE_BASE ? handleBack : undefined}
       contextHandler={activeContext}
+      agentController={agentController}
     >
       {renderContent()}
     </Layout>
