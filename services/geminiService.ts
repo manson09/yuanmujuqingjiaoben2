@@ -8,14 +8,10 @@ const BASE_URL = import.meta.env.VITE_BASE_URL || 'https://openrouter.ai/api/v1'
 
 // 💡 双模型路由 ID 映射
 const MODELS = {
-  LOGIC_FAST: "google/gemini-2.0-flash-001",
-  CREATIVE_PRO: "openai/gpt-4o"
+  LOGIC_FAST: "google/gemini-3-flash-preview",
+  CREATIVE_PRO: "anthropic/claude-3.5-sonnet"
 };
 
-/**
- * 统一请求器：用于替换原本的 Google SDK 调用
- * 0 删减你的提示词，仅在后台请求时追加防搬运约束
- */
 async function callOpenRouter(model: string, system: string, user: string, temperature: number, jsonMode = false) {
   // 💡 解决复制粘贴问题的“后台补丁”
   const antiCopy = "\n\n【系统最高指令】：严禁摘抄原著原句，必须将其转化为脚本化的动作与台词描述，严禁复读。";
@@ -247,7 +243,10 @@ export const streamChatResponse = async function* (
   currentContext?: string,
   contextName?: string
 ) {
+  // 💡 使用你在顶部定义的模型变量
   const model = MODELS.LOGIC_FAST;
+
+  // 🔴 以下文字 100% 保留自你的原代码，不作任何删减
   const chatInstruction = `
   你是一个嵌入在‘漫改智脑’系统中的高级智能体 (Agent)。
   你的职责不仅是回答问题，还要根据用户的意图控制系统导航。
@@ -262,25 +261,58 @@ export const streamChatResponse = async function* (
   【控制协议】
   如果用户要求进行某项特定任务，请在回复的开头使用特殊指令代码进行跳转。
   指令格式：[[CMD:TARGET_STEP]]
-  ... (此处 1:1 保留你原代码中的所有跳转协议文字)
+  
+  TARGET_STEP 可选值：
+  - KNOWLEDGE_BASE
+  - SEASON_PLANNER
+  - SCRIPT_GENERATOR
+  - OUTLINE_GENERATOR
+
+  【示例】
+  用户：“开始写剧本吧” / “用Claude生成第一集”
+  你：“[[CMD:SCRIPT_GENERATOR]] 好的，已为您切换到【剧情脚本生成】工作台。在这里我们将利用高文笔模型进行创作。”
+
+  用户：“我要先做大纲”
+  你：“[[CMD:SEASON_PLANNER]] 没问题，已跳转至【季度改编规划】。”
+
+  如果用户只是闲聊或修改当前文本，则不需要输出指令代码。
+  当前若有编辑器内容传入，请优先处理文本润色任务。
   `;
 
+  // 💡 构造上下文
   let fullPrompt = newMessage;
   if (currentContext) {
-    fullPrompt = `[系统提示：用户当前编辑文件是 "${contextName || '未命名'}"]\n[当前编辑器内容]:\n${currentContext.slice(0, 30000)}\n[指令]:\n${newMessage}`;
+    fullPrompt = `
+[系统提示：用户当前正在编辑的文件是 "${contextName || '未命名'}"]
+[当前编辑器中的内容如下]:
+\`\`\`
+${currentContext.slice(0, 30000)}
+\`\`\`
+
+[用户的指令]:
+${newMessage}
+`;
   }
 
-  // 模拟流式输出 (OpenRouter 标准流处理)
+  // 💡 发送请求到 OpenRouter (支持流式打字效果)
   const response = await fetch(`${BASE_URL}/chat/completions`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({
-      model,
-      messages: [{ role: 'system', content: chatInstruction }, ...history.map(h => ({ role: h.role, content: h.text })), { role: 'user', content: fullPrompt }],
-      stream: true
+      model: model,
+      messages: [
+        { role: 'system', content: chatInstruction },
+        ...history.map(h => ({ role: h.role, content: h.text })),
+        { role: 'user', content: fullPrompt }
+      ],
+      stream: true // 开启流式传输
     }),
   });
 
+  // 💡 处理流式返回的数据块
   const reader = response.body?.getReader();
   const decoder = new TextDecoder();
   while (true) {
@@ -294,7 +326,8 @@ export const streamChatResponse = async function* (
         if (data === '[DONE]') break;
         try {
           const json = JSON.parse(data);
-          yield json.choices[0].delta.content || "";
+          const content = json.choices[0].delta.content || "";
+          yield content;
         } catch (e) {}
       }
     }
