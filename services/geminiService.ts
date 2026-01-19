@@ -9,19 +9,35 @@ const BASE_URL = import.meta.env.VITE_BASE_URL || 'https://openrouter.ai/api/v1'
 // 💡 双模型路由 ID 映射
 const MODELS = {
   LOGIC_FAST: "google/gemini-3-flash-preview", // 极速逻辑版
-  CREATIVE_PRO: "anthropic/claude-3.5-sonnet" // 沉浸文笔版
+  CREATIVE_PRO: "deepseek/deepseek-v3" ,// 沉浸文笔版
 };
 
-async function callOpenRouter(model: string, system: string, user: string, temperature: number, jsonMode = false) {
-  // 💡 解决复制粘贴问题的“后台补丁”
- // 💡 解决复制粘贴问题的“后台补丁” - 使用反引号支持多行，逻辑更严密
-  const antiCopy = `
-\n\n【最高创作指令 - 严禁复读】
-1. 【原著至上】：剧情事实、人物关系必须以原著为准。严禁漏掉“穿越”、“系统”、“金手指”等核心背景设定。
-2. 【改编红线】：绝对禁止直接摘抄小说原句。你现在的身份是编剧，必须将描述转化为“镜头动作”和“口语化台词”。
-3. 【禁止新增】：严禁在脚本中擅自增加原著不存在的人物、路人或重大剧情转折。
-4. 【纯净输出】：直接输出脚本内容，不要复述原著，不要解释改编思路。
-`;
+async function callOpenRouter(model: string, system: string, user: string, temperature: number, mode: FrequencyMode, jsonMode = false) {
+  // 1. 男频爽感指令
+  const maleAntiCopy = `
+【最高指令：男频爽感算法】
+- 冲突暴力化：每一场戏必须是“危机”或“爆发”。
+- 视觉奇观化：将战力描写化为具体的特效画面（如：气浪震碎、虚空凝剑）。
+- 语感压迫性：台词要狂，要带刺。
+- 节奏：结尾制造极致悬念。`;
+
+  // 2. 女频爽感指令
+  const femaleAntiCopy = `
+【最高指令：女频爽感算法】
+- 情绪极致化：侧重眼神、神态的微表情。写出宿命感。
+- 心理博弈：台词要藏三分露七分，充满潜台词。
+- 细节打脸：打脸靠地位、智力或身份降维打击。
+- 节奏：结尾卡在关系决裂或真相揭开瞬间。`;
+
+  // 3. 核心事实保留指令（解决穿越设定丢失）
+  const factPreservation = `
+\n【最高创作铁律 - 严禁复读 & 严禁乱改】
+- 剧情事实：必须 100% 忠于原著。严禁漏掉“穿越”、“系统”、“异世界”等核心背景。
+- 改编红线：绝对禁止摘抄原句。你必须将叙述转化为“动作、神态和对白”。
+- 严禁自创：不准增加原著没有的人物或重大剧情，不准复读。`;
+
+  // 根据当前模式选择对应的指令补丁
+  const modeSpecificPrompt = mode === FrequencyMode.MALE ? maleAntiCopy : femaleAntiCopy;
 
   const response = await fetch(`${BASE_URL}/chat/completions`, {
     method: 'POST',
@@ -35,7 +51,7 @@ async function callOpenRouter(model: string, system: string, user: string, tempe
       model: model,
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content: user + antiCopy }
+        { role: 'user', content: user + modeSpecificPrompt + factPreservation }
       ],
       temperature: temperature,
       response_format: jsonMode ? { type: "json_object" } : undefined
@@ -50,8 +66,6 @@ async function callOpenRouter(model: string, system: string, user: string, tempe
   const data = await response.json();
   return data.choices[0].message.content;
 }
-
-// --- 以下是你原始代码中的所有函数，Prompt 文案和逻辑 100% 保持原样 ---
 
 export const analyzeAdaptationFocus = async (
   novelContent: string,
@@ -193,7 +207,7 @@ export const generateScriptSegment = async (
   请直接输出脚本内容，最后以 "---SUMMARY---" 分隔摘要。
   `;
 
-  const result = await callOpenRouter(modelName, fullSystemInstruction, prompt, 0.8);
+  const result = await callOpenRouter(modelName, fullSystemInstruction, prompt, 0.8, mode);
   const [content, summaryPart] = result.split("---SUMMARY---");
   
   return {
@@ -202,15 +216,16 @@ export const generateScriptSegment = async (
   };
 };
 
-export const extractCharacterOutline = async (scriptContent: string): Promise<CharacterProfile[]> => {
+export const extractCharacterOutline = async (scriptContent: string, mode: FrequencyMode): Promise<CharacterProfile[]> => {
   const prompt = `从以下脚本提取人物JSON：\n${scriptContent.slice(0, 40000)}`;
-  const res = await callOpenRouter(MODELS.LOGIC_FAST, "你是一个专业的人设提取专家。", prompt, 0.3, true);
+  const res = await callOpenRouter(MODELS.LOGIC_FAST, "你是一个专业的人设提取专家。", prompt, 0.3, mode,true);
   return JSON.parse(res.match(/\[.*\]/s)?.[0] || "[]");
 };
 
 export const generatePlotSummary = async (
   targetContent: string,
   styleContent: string,
+  mode: FrequencyMode,
   novelContent?: string
 ): Promise<string> => {
   // 💡 重点修改：强制使用 Gemini 3 (LOGIC_FAST)，因为它能吃下你 40 万字的原著，Claude (CREATIVE_PRO) 容不下。
@@ -243,7 +258,7 @@ export const generatePlotSummary = async (
   4. **资料整合**：以【季度规划】确定的集数/进度为轴，从【原著小说】中提取具体的招式名、地名、宝物名等细节来填充事件描述，确保内容不空洞。
   `;
 
-  return callOpenRouter(model, "你是一名商业动漫策划，负责从海量原著中提炼卖点。", prompt, 0.5);
+  return callOpenRouter(model, "你是一名商业动漫策划，负责从海量原著中提炼卖点。", prompt, 0.5, mode);
 };
 
 export const streamChatResponse = async function* (
@@ -304,10 +319,11 @@ ${newMessage}
   }
 
   // 💡 发送请求到 OpenRouter (支持流式打字效果)
-  const response = await fetch(`${BASE_URL}/chat/completions`, {
+ const response = await fetch(`${BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${API_KEY}`,
+      // 💡 重点：确保这里使用的是反引号 ` 而不是单引号 '
+      'Authorization': `Bearer ${API_KEY}`, 
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
