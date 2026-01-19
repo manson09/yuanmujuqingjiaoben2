@@ -206,7 +206,9 @@ export const generatePlotSummary = async (
   styleContent: string,
   novelContent?: string
 ): Promise<string> => {
-  const model = MODELS.CREATIVE_PRO;
+  // 💡 重点修改：强制使用 Gemini 3 (LOGIC_FAST)，因为它能吃下你 40 万字的原著，Claude (CREATIVE_PRO) 容不下。
+  const model = MODELS.LOGIC_FAST;
+
   const prompt = `
   【任务目标】：请根据【季度规划大纲】和【原著小说】，严格参照【写法参考范例】的格式和侧重点，生成一份商业性的剧情梗概。
   
@@ -216,7 +218,7 @@ export const generatePlotSummary = async (
 
   ${novelContent ? `
   2. **原著小说全文/片段** (Source Novel):
-  ${novelContent.slice(0, 300000)} ... (这是填充血肉的素材库)
+  ${novelContent.slice(0, 400000)} ... (Gemini 3 支持百万上下文，这里截取你全部的 40 万字原著)
   ` : ''}
 
   3. **【写法参考范例】** (MANDATORY FORMAT REFERENCE):
@@ -234,7 +236,7 @@ export const generatePlotSummary = async (
   4. **资料整合**：以【季度规划】确定的集数/进度为轴，从【原著小说】中提取具体的招式名、地名、宝物名等细节来填充事件描述，确保内容不空洞。
   `;
 
-  return callOpenRouter(model, "你是一名商业动漫策划。", prompt, 0.5);
+  return callOpenRouter(model, "你是一名商业动漫策划，负责从海量原著中提炼卖点。", prompt, 0.5);
 };
 
 export const streamChatResponse = async function* (
