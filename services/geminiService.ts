@@ -14,7 +14,14 @@ const MODELS = {
 
 async function callOpenRouter(model: string, system: string, user: string, temperature: number, jsonMode = false) {
   // 💡 解决复制粘贴问题的“后台补丁”
-  const antiCopy = "\n\n【系统最高指令】：严禁摘抄原著原句，必须将其转化为脚本化的动作与台词描述，严禁复读。";
+ // 💡 解决复制粘贴问题的“后台补丁” - 使用反引号支持多行，逻辑更严密
+  const antiCopy = `
+\n\n【最高创作指令 - 严禁复读】
+1. 【原著至上】：剧情事实、人物关系必须以原著为准。严禁漏掉“穿越”、“系统”、“金手指”等核心背景设定。
+2. 【改编红线】：绝对禁止直接摘抄小说原句。你现在的身份是编剧，必须将描述转化为“镜头动作”和“口语化台词”。
+3. 【禁止新增】：严禁在脚本中擅自增加原著不存在的人物、路人或重大剧情转折。
+4. 【纯净输出】：直接输出脚本内容，不要复述原著，不要解释改编思路。
+`;
 
   const response = await fetch(`${BASE_URL}/chat/completions`, {
     method: 'POST',
@@ -136,7 +143,7 @@ export const generateScriptSegment = async (
   if (modelTier === ModelTier.CREATIVE_PRO) {
       tierInstruction = `
       【高阶创作模式已激活】
-      你现在的角色是金牌编剧。请注意：
+      你现在的角色是金牌编剧，极其擅长编写男女频爽剧剧情脚本。请注意：
       1. **拒绝流水账**：不要平铺直叙。使用侧面描写、环境烘托、微表情来传达信息。
       2. **强化潜台词**：人物对话不要过于直白，要体现人物的性格底色和言外之意。
       3. **镜头感**：文字必须具有极强的画面指引性，每一行都要能被原画师直接想象成画面。
