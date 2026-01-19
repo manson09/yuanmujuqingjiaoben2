@@ -9,7 +9,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL || 'https://openrouter.ai/api/v1'
 // 💡 双模型路由 ID 映射
 const MODELS = {
   LOGIC_FAST: "google/gemini-3-flash-preview", // 极速逻辑版
-  CREATIVE_PRO: "deepseek/deepseek-v3" ,// 沉浸文笔版
+  CREATIVE_PRO: "deepseek/deepseek-v3.2" ,// 沉浸文笔版
 };
 
 async function callOpenRouter(model: string, system: string, user: string, temperature: number, mode: FrequencyMode, jsonMode = false) {
