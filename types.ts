@@ -18,6 +18,7 @@ export interface KnowledgeFile {
 }
 
 export enum AppStep {
+  PROJECT_HUB = 'PROJECT_HUB', 
   KNOWLEDGE_BASE = 'KNOWLEDGE_BASE',
   WORKFLOW_SELECT = 'WORKFLOW_SELECT',
   SEASON_PLANNER = 'SEASON_PLANNER', // 新增：季度规划
@@ -71,4 +72,11 @@ export interface GlobalContextHandler {
 export interface AgentController {
   navigateTo: (step: AppStep) => void;
   currentStep: AppStep;
+}
+export interface Project {
+  id: string;
+  title: string;               // 小说名称
+  files: KnowledgeFile[];      // 属于该项目的知识库文件（原著、参考等）
+  lastModified: number;        // 最后修改时间戳
+  frequencyMode: FrequencyMode;// 该项目的受众模式（男频/女频）
 }
