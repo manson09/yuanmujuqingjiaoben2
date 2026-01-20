@@ -86,26 +86,36 @@ export const generateFullScriptOutline = async (
   episodeCount: string,
   focusInstructions: string,
   mode: FrequencyMode,
-  modelTier: ModelTier = ModelTier.CREATIVE_PRO
+  modelTier: ModelTier = ModelTier.CREATIVE_PRO,
+  styleContent: string // 💡 关键：加入这个参数
 ): Promise<string> => {
-  // 40万字原著必须使用 Gemini 3 (LOGIC_FAST) 处理
-  const model = MODELS.LOGIC_FAST; 
+  
+  // 根据用户选择决定模型
+  const modelName = modelTier === ModelTier.CREATIVE_PRO ? MODELS.CREATIVE_PRO : MODELS.LOGIC_FAST;
   const modeInstruction = mode === FrequencyMode.MALE ? MALE_FREQ_INSTRUCTION : FEMALE_FREQ_INSTRUCTION;
 
   const prompt = `
-  【核心任务】：通读原著小说，制定一份【2000-3000字】的全书剧本脱水大纲。
-  
-  【最高准则】：
-  1. 100%保留：必须保留原著中所有人物（含配角）、核心人物台词、关键物品与道具（法宝/契约/道具名）。
-  2. 剧情走势：严格遵循原著故事总体走向，严禁魔改因果链。
-  3. 水分压缩：仅对散文式环境描写、无意义转场进行极限压缩，将内容转化为高节奏的剧本节点。
-  4. 预计体量：${episodeCount} 集。
+【核心任务】：通读原著小说，参考指定的【文笔参考】风格，制定一份【2000-3000字】的全书剧本脱水大纲。
 
-  【原著素材】：
-  ${novelContent.slice(0, 150000)} ... (已截取前15万字核心内容)
-  `;
+【最高准则】：
+1. 风格模仿（核心）：必须深度分析下方【文笔参考】中的叙事节奏、语言风格、信息密度和格式规范，并在本次生成中进行 1:1 的风格还原。
+2. 100%保留：必须保留原著中所有人物（含配角）、核心人物台词、关键物品与道具（法宝/契约/道具名）。
+3. 剧情走势：严格遵循原著故事总体走向，严禁魔改因果链。
+4. 水分压缩：仅对散文式环境描写、无意义转场进行极限压缩，将内容转化为高节奏的剧本节点。
+5. 预计体量：${episodeCount} 集。
 
-  return callOpenRouter(model, `你是一名专业的脱水编剧。${modeInstruction}`, prompt, 0.7, mode);
+【文笔参考（必须模仿此写法）】：
+${styleContent || "暂无参考，请按专业剧本大纲标准书写"}
+
+【补充自定义要求】：
+${focusInstructions}
+
+【原著素材】：
+${novelContent.slice(0, 150000)} ...（已截取核心内容）
+`;
+
+  // 调用接口
+  return callOpenRouter(modelName, `你是一名专业的脱水编剧。${modeInstruction}`, prompt, 0.7, mode);
 };
 
 export const generateScriptSegment = async (
