@@ -13,18 +13,16 @@ const MODELS = {
 };
 
 async function callOpenRouter(model: string, system: string, user: string, temperature: number, mode: FrequencyMode, jsonMode = false) {
+  // 💡 建立高保真脱水最高准则
   const factPreservation = `
-\n【最高适配准则 - 高保真脱水】
-1. 【原著 100% 还原】：人物（含配角）、核心对白、关键道具（法宝/物品/契约）、因果走势必须与原著完全一致。
-2. 【水分极限压缩】：删掉环境废话、内心独白和冗余转场。将散文描写转化为剧本的“动作”和“对白”。
-3. 【禁止自创】：严禁新增人物，严禁魔改剧情。你是剪辑师，不是创作者。
-4. 【禁令】：严禁输出 ## 或 ** 符号，严禁复读原文描写。`;
+\n【最高适配铁律 - 严禁乱改 & 高保真脱水】
+1. 【核心 100% 还原】：原著中所有登场人物（含配角）、核心台词金句、关键道具（法宝/物品名称）、因果走势必须 1:1 还原。
+2. 【水分极限压缩】：删掉散文式环境描写、心理独白和冗余转场。你是“精修剪辑师”，负责将内容转化为高节奏的视听语言。
+3. 【禁止自创】：严禁新增人物，严禁魔改原著剧情。
+4. 【禁令】：严禁输出 ## 或 ** 符号，严禁直接复读原著的描述性文本。`;
 
-  const maleAntiCopy = `\n【男频爽感】：压缩修炼过程，拉快打脸节奏，保持战力逻辑严密。`;
-  const femaleAntiCopy = `\n【女频爽感】：压缩环境描写，拉快情感对峙，保持细节张力。`;
-
-  const modeSpecificPrompt = mode === FrequencyMode.MALE ? maleAntiCopy : femaleAntiCopy;
-
+  const maleAntiCopy = `\n【男频模式】：压缩修炼与过场，拉快打脸、反转节奏。`;
+  const femaleAntiCopy = `\n【女频模式】：压缩环境与寒暄，强化情感对峙。`;
 
   const modeSpecificPrompt = mode === FrequencyMode.MALE ? maleAntiCopy : femaleAntiCopy;
 
@@ -109,7 +107,6 @@ export const generateFullScriptOutline = async (
 
   return callOpenRouter(model, `你是一名专业的脱水编剧。${modeInstruction}`, prompt, 0.7, mode);
 };
-};
 
 export const generateScriptSegment = async (
   novelContent: string,
@@ -143,7 +140,7 @@ export const generateScriptSegment = async (
   
   【核心输入资料】：
   1. **原著小说内容** (剧情细节唯一来源)：
-  ${novelContent.slice(0, 50000)} ... (截取部分)
+  ${novelContent.slice(0, 150000)} ... (截取部分)
   
   2. **季度大纲/宏观规划** (Master Outline - 剧情走向指导)：
   ${outlineContent ? `【注意：请确保本段剧本的节奏和事件符合大纲中对该阶段的规划】\n${outlineContent.slice(0, 8000)}` : "无季度大纲，请自行把控节奏。"}
@@ -227,7 +224,6 @@ export const generatePlotSummary = async (
      - 如果【写法参考范例】是用列表写的，你就用列表。
      - 如果它是用“第X集：[标题] 内容”写的，你就照做。
      - 如果它有特殊的符号或小标题（如【高光时刻】），你也必须保留。
-  4. **资料整合**：以【季度规划】确定的集数/进度为轴，从【原著小说】中提取具体的招式名、地名、宝物名等细节来填充事件描述，确保内容不空洞。
   `;
 
   return callOpenRouter(model, "你是一名商业动漫策划，负责从海量原著中提炼卖点。", prompt, 0.5, mode);
@@ -250,7 +246,7 @@ export const streamChatResponse = async function* (
   【能力与工具】
   系统包含以下核心工作台：
   1. 知识库 (KNOWLEDGE_BASE): 上传小说、参考资料。
-  2. 季度规划 (SEASON_PLANNER): 负责宏观大纲、分集结构。这是编剧的第一步。
+  2. 剧情大纲: 负责宏观大纲、分集结构。这是编剧的第一步。
   3. 脚本生成 (SCRIPT_GENERATOR): 负责具体写剧本。如果用户提到 "Claude", "文笔好", "写正文", 请引导至此。
   4. 人物提取 (OUTLINE_GENERATOR): 负责提取人设。
 
