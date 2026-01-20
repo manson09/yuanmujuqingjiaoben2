@@ -7,7 +7,7 @@ interface ScriptGeneratorProps {
   files: KnowledgeFile[];
   addGeneratedFile: (name: string, content: string, type: FileType) => void;
   registerContext: (handler: GlobalContextHandler) => void;
-  // 💡 持久化 Props (必须与 App.tsx 传参一致)
+  // 持久化 Props
   segments: ScriptSegment[];
   setSegments: React.Dispatch<React.SetStateAction<ScriptSegment[]>>;
   episodeStart: number;
@@ -35,7 +35,6 @@ const ScriptGenerator: React.FC<ScriptGeneratorProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 初始化选择
   useEffect(() => {
     if (!selectedNovelId && novels.length > 0) setSelectedNovelId(novels[0].id);
     if (!selectedOutlineId && outlines.length > 0) setSelectedOutlineId(outlines[0].id);
@@ -112,7 +111,7 @@ const ScriptGenerator: React.FC<ScriptGeneratorProps> = ({
       }
 
     } catch (err) {
-      setErrorMsg("生成失败，请稍后重试。");
+      setErrorMsg("生成失败，进度已保留，请重试。");
       if (!regenerateId) {
         setSegments(prev => prev.filter(s => s.id !== targetSegmentId));
       } else {
@@ -143,26 +142,26 @@ const ScriptGenerator: React.FC<ScriptGeneratorProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
       <div className="lg:col-span-3 space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4 sticky top-24">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4 sticky top-24 overflow-y-auto max-h-[85vh]">
           <div className="space-y-2 pb-4 border-b border-slate-100">
              <h4 className="font-semibold text-slate-800 text-sm">选择 AI 引擎</h4>
              <div className="grid grid-cols-1 gap-2">
-                <button onClick={() => setModelTier(ModelTier.CREATIVE_PRO)} className={`p-3 rounded-xl text-left border transition-all ${modelTier === ModelTier.CREATIVE_PRO ? 'bg-indigo-50 border-indigo-200' : 'bg-white'}`}>
-                    <span className="text-sm font-bold flex items-center gap-1"><Feather size={14} /> 沉浸文笔版</span>
+                <button onClick={() => setModelTier(ModelTier.CREATIVE_PRO)} className={`p-3 rounded-xl text-left border transition-all ${modelTier === ModelTier.CREATIVE_PRO ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-slate-200'}`}>
+                    <span className={`text-sm font-bold flex items-center gap-1 ${modelTier === ModelTier.CREATIVE_PRO ? 'text-indigo-700' : 'text-slate-600'}`}>
+                        <Feather size={14} /> 沉浸文笔版
+                    </span>
                 </button>
-                <button onClick={() => setModelTier(ModelTier.LOGIC_FAST)} className={`p-3 rounded-xl text-left border transition-all ${modelTier === ModelTier.LOGIC_FAST ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}>
-                    <span className="text-sm font-bold flex items-center gap-1"><Zap size={14} /> 极速逻辑版</span>
+                <button onClick={() => setModelTier(ModelTier.LOGIC_FAST)} className={`p-3 rounded-xl text-left border transition-all ${modelTier === ModelTier.LOGIC_FAST ? 'bg-emerald-50 border-emerald-200 shadow-sm' : 'bg-white border-slate-200'}`}>
+                    <span className={`text-sm font-bold flex items-center gap-1 ${modelTier === ModelTier.LOGIC_FAST ? 'text-emerald-700' : 'text-slate-600'}`}>
+                        <Zap size={14} /> 极速逻辑版
+                    </span>
                 </button>
              </div>
           </div>
 
           <div className="space-y-4 pb-4 border-b border-slate-100">
-             <h4 className="font-semibold text-slate-800 text-sm text-slate-400">输入素材</h4>
+             <h4 className="font-semibold text-slate-800 text-sm">输入素材</h4>
              <select value={selectedNovelId} onChange={(e) => setSelectedNovelId(e.target.value)} className="w-full text-sm border-slate-300 rounded-lg">
                 <option value="">-- 选择小说 --</option>
                 {novels.map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
-             </select>
-             <select value={selectedOutlineId} onChange={(e) => setSelectedOutlineId(e.target.value)} className="w-full text-sm border-emerald-300 rounded-lg">
-                <option value="">-- 选择大纲 --</option>
-                {outlines.map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
-             </select>
+             </sel
