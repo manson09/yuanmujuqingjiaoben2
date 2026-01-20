@@ -17,7 +17,7 @@ const WorkflowSelection: React.FC<WorkflowSelectionProps> = ({ onSelect }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl">
         {/* 💡 修改：由季度规划改为 全书大纲生成 */}
         <button
-          onClick={() => onSelect(AppStep.SCRIPT_OUTLINE_GEN)}
+          onClick={() => onSelect(AppStep.SEASON_PLANNER)}
           className="group relative flex flex-col items-center p-8 bg-white border-2 border-slate-200 rounded-2xl hover:border-emerald-500 hover:shadow-xl transition-all duration-300 text-left h-full"
         >
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
