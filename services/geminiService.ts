@@ -48,7 +48,7 @@ async function callOpenRouter(model: string, system: string, user: string, tempe
       model: model,
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content: user + modeSpecificPrompt + factPreservation + antiCopy }
+        { role: 'user', content: user + modeSpecificPrompt + factPreservation }
       ],
       temperature: temperature,
       response_format: jsonMode ? { type: "json_object" } : undefined
