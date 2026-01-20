@@ -13,27 +13,18 @@ const MODELS = {
 };
 
 async function callOpenRouter(model: string, system: string, user: string, temperature: number, mode: FrequencyMode, jsonMode = false) {
-  // 1. 男频爽感指令
-  const maleAntiCopy = `
-【最高指令：男频爽感算法】
-- 冲突暴力化：无温水戏，每场戏必是「生死级危机 / 尊严级挑衅 / 战力碾压式爆发」，冲突即时触发、即时反击，无拖沓铺垫；
-- 视觉奇观化：所有战力描写全部转化为「具象影视特效画面」，拒绝抽象描述，例：气浪震碎青石、虚空凝剑裂风、拳劲崩裂山河、灵力覆体生金光；
-- 语感压迫性：尽量保持原台词，可以适当艺术化，如果要改台词，台词就要狂、要锐、要带刺，多用短句 + 反问 + 碾压式宣言，字字铿锵，气场拉满，无废话对白；
-- 节奏锚点：全程快节奏推进，结尾必须制造「极致钩子式悬念」，卡点在「底牌未出、强敌突现、战力破阶、狠话落地」任一爽感节点，留足期待感；`;
-
-  // 2. 女频爽感指令
-  const femaleAntiCopy = `
-【最高指令：女频爽感算法】
-- 情绪极致化：重「微表情雕刻」，核心写「眼技 + 神态细节」，例：眼尾泛红、瞳仁微颤、含泪不坠、眸光冷冽如冰、唇角噙一抹淡凉笑意；写出宿命的厚重感与宿命反击的爽感，情绪藏于眉眼，不流于表面；
-- 心理博弈：尽量保持原台词，可以适当艺术化，如果要改台词，要么温柔语气说诛心话，要么极简冷语戳软肋；先听后说、先示弱再反杀，话不说满，留白处皆是碾压；
-- 细节打脸：无硝烟式降维打击，打脸不靠嘶吼，靠「身份 / 智力 / 格局 / 人脉」的精准碾压，例：不动声色亮底牌让对方失态、预判算计反将一军、旁人躬身行礼的瞬间让对方颜面扫地；
-- 节奏锚点：全程慢沉节奏铺情绪，结尾精准卡点「关系决裂瞬间 / 真相揭开刹那 / 诛心台词落地 / 对方失态崩溃」，卡在情绪最浓烈、爽感最顶峰的节点收束。`;
-
   const factPreservation = `
-\n【最高创作指令 - 专业剧本化】
-1. 【去AI化】：禁止使用“空气中弥漫着”、“显而易见”、“这一刻”等文艺废话。台词要短促、带刺、有攻击性。
-2. 【严禁分镜】：禁止出现任何镜头术语！严禁写「特写、全景、环绕拍摄、推镜头、拉近」等词汇。
-3. 【红线】：严禁复读原著，严禁漏掉“穿越/系统”等核心设定，严禁输出 ## 或 ** 符号。`;
+\n【最高适配准则 - 高保真脱水】
+1. 【原著 100% 还原】：人物（含配角）、核心对白、关键道具（法宝/物品/契约）、因果走势必须与原著完全一致。
+2. 【水分极限压缩】：删掉环境废话、内心独白和冗余转场。将散文描写转化为剧本的“动作”和“对白”。
+3. 【禁止自创】：严禁新增人物，严禁魔改剧情。你是剪辑师，不是创作者。
+4. 【禁令】：严禁输出 ## 或 ** 符号，严禁复读原文描写。`;
+
+  const maleAntiCopy = `\n【男频爽感】：压缩修炼过程，拉快打脸节奏，保持战力逻辑严密。`;
+  const femaleAntiCopy = `\n【女频爽感】：压缩环境描写，拉快情感对峙，保持细节张力。`;
+
+  const modeSpecificPrompt = mode === FrequencyMode.MALE ? maleAntiCopy : femaleAntiCopy;
+
 
   const modeSpecificPrompt = mode === FrequencyMode.MALE ? maleAntiCopy : femaleAntiCopy;
 
@@ -92,48 +83,32 @@ export const analyzeAdaptationFocus = async (
 
   return callOpenRouter(model, "你是一名专业的市场分析专家。", prompt, 0.7);
 };
-
-export const generateSeasonPlan = async (
+export const generateFullScriptOutline = async (
   novelContent: string,
-  seasonName: string,
   episodeCount: string,
   focusInstructions: string,
   mode: FrequencyMode,
   modelTier: ModelTier = ModelTier.CREATIVE_PRO
 ): Promise<string> => {
-  const model = modelTier === ModelTier.LOGIC_FAST ? MODELS.LOGIC_FAST : MODELS.CREATIVE_PRO;
+  // 40万字原著必须使用 Gemini 3 (LOGIC_FAST) 处理
+  const model = MODELS.LOGIC_FAST; 
   const modeInstruction = mode === FrequencyMode.MALE ? MALE_FREQ_INSTRUCTION : FEMALE_FREQ_INSTRUCTION;
 
   const prompt = `
-  【任务目标】：请作为一名动画总编剧，根据原著小说，为《${seasonName}》制定一份详细的季度改编大纲。
+  【核心任务】：通读原著小说，制定一份【2000-3000字】的全书剧本脱水大纲。
   
-  【核心参数】：
-  - 目标受众频段：${mode === FrequencyMode.MALE ? "男频 (Male Frequency)" : "女频 (Female Frequency)"}
-  - 预计集数：${episodeCount} 集
-  - 单集时长：2-3分钟（动漫爽剧节奏）
-  - 核心改编指令：${focusInstructions || "还原原著爽点，加快前期节奏"}
+  【最高准则】：
+  1. 100%保留：必须保留原著中所有人物（含配角）、核心人物台词、关键物品与道具（法宝/契约/道具名）。
+  2. 剧情走势：严格遵循原著故事总体走向，严禁魔改因果链。
+  3. 水分压缩：仅对散文式环境描写、无意义转场进行极限压缩，将内容转化为高节奏的剧本节点。
+  4. 预计体量：${episodeCount} 集。
 
-  【原著内容】：
-  ${novelContent.slice(0, 100000)} ... (为防止上下文溢出，截取了部分内容)
-
-  【输出要求】：
-  请输出一份结构清晰的Markdown文档，**严禁使用任何Emoji图标（如✨🌟📝##**等）或复杂的分割线符号**，保持专业、干净的商务文档风格。
-  
-  必须严格包含以下部分：
-  1. **原著改编进度**：【重要】必须明确估算并标注本季内容对应原著小说的章节范围（例如：对应原著第1章 至 第158章）。
-  2. **本季核心看点**：一句话总结本季主线。
-  3. **主要角色成长线**：主角及核心配角在本季的起点与终点。
-  4. **分集剧情规划表**：
-     请按每 5-10 集为一个节点，规划剧情走向。例如：
-     - 第 1-10 集：[开篇/觉醒] 具体事件...
-     - 第 11-20 集：[初次冲突] 具体事件...
-     ...
-  5. **高光时刻/名场面标记**：列出本季必须保留的经典场面。
-
-  请确保逻辑通顺，适合作为后续分集剧本写作的指导蓝图。
+  【原著素材】：
+  ${novelContent.slice(0, 150000)} ... (已截取前15万字核心内容)
   `;
 
-  return callOpenRouter(model, `你是一名专业的动画IP改编架构师，擅长宏观叙事与节奏把控。\n${modeInstruction}`, prompt, 0.7);
+  return callOpenRouter(model, `你是一名专业的脱水编剧。${modeInstruction}`, prompt, 0.7, mode);
+};
 };
 
 export const generateScriptSegment = async (
@@ -154,10 +129,10 @@ export const generateScriptSegment = async (
   let tierInstruction = "";
   if (modelTier === ModelTier.CREATIVE_PRO) {
       tierInstruction = `
-      【高阶创作模式已激活】
-      你现在的角色是金牌编剧，极其擅长编写男女频爽剧剧情脚本。请注意：
-      1. **拒绝流水账**：不要平铺直叙。使用侧面描写、环境烘托、微表情来传达信息
-      2. **镜头感**：文字必须具有极强的画面指引性，每一行都要能被原画师直接想象成画面。
+      (高保真脱水改写): 
+  - 依据原著对应情节进行水分压缩，严禁删减原著中提及的人物、道具、法宝。
+  - 必须保留并使用原著中人物的精彩原创台词，仅进行口语化适配。
+  - 保持总体走向 100% 不变，只通过压缩叙述来提升爽感。
       `;
   }
 
