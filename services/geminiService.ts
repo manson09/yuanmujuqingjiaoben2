@@ -29,14 +29,11 @@ async function callOpenRouter(model: string, system: string, user: string, tempe
 - 细节打脸：打脸靠地位、智力或身份降维打击。
 - 节奏：结尾卡在关系决裂或真相揭开瞬间。`;
 
-  // 3. 核心事实保留指令（解决穿越设定丢失）
   const factPreservation = `
 \n【最高创作铁律 - 严禁复读 & 严禁乱改】
-- 剧情事实：必须 100% 忠于原著。严禁漏掉“穿越”、“系统”、“异世界”等核心背景。
-- 改编红线：绝对禁止摘抄原句。你必须将叙述转化为“动作、神态和对白”。
+- 剧情事实：严禁漏掉“穿越”、“系统”、“异世界”等核心背景。
 - 严禁自创：不准增加原著没有的人物或重大剧情，不准复读。`;
 
-  // 根据当前模式选择对应的指令补丁
   const modeSpecificPrompt = mode === FrequencyMode.MALE ? maleAntiCopy : femaleAntiCopy;
 
   const response = await fetch(`${BASE_URL}/chat/completions`, {
