@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollText, Save, Download, Wand2, Zap, Feather, AlertCircle, FileText } from 'lucide-react';
+import { ScrollText, Save, Download, Wand2, Zap, Feather, AlertCircle, PenTool } from 'lucide-react';
 import { KnowledgeFile, FileType, FrequencyMode, GlobalContextHandler, ModelTier } from '../types';
 import { analyzeAdaptationFocus, generateFullScriptOutline } from '../services/geminiService';
 
@@ -10,13 +10,13 @@ interface SeasonPlannerProps {
 }
 
 const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGeneratedFile, registerContext }) => {
-  // 基础数据过滤
+  // 1. 关联知识库：过滤出“原著小说”和“文笔参考”两类文件
   const novels = files.filter(f => f.type === FileType.NOVEL);
-  const styleRefs = files.filter(f => f.type === FileType.STYLE_REF); // 恢复风格参考文件过滤
+  const styleRefs = files.filter(f => f.type === FileType.STYLE_REF); // 对应知识库里的文笔参考类别
 
   // 状态管理
   const [selectedNovelId, setSelectedNovelId] = useState<string>('');
-  const [selectedStyleId, setSelectedStyleId] = useState<string>(''); // 恢复参考文件选中状态
+  const [selectedStyleId, setSelectedStyleId] = useState<string>(''); // 记录选中的文笔参考ID
   const [episodeCount, setEpisodeCount] = useState('80');
   const [focusInstructions, setFocusInstructions] = useState('');
   const [mode, setMode] = useState<FrequencyMode>(FrequencyMode.MALE);
@@ -44,7 +44,7 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
     }
   }, [novels, selectedNovelId]);
 
-  // 生成大纲函数 - 增加了 styleContent 传入
+  // 生成逻辑：提取文笔参考内容并传给 AI
   const handleGenerateOutline = async () => {
     if (!selectedNovelId) {
       setErrorMsg("请先选择一本原著小说");
@@ -55,17 +55,17 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
     setErrorMsg(null);
     
     const novel = files.find(f => f.id === selectedNovelId);
-    const styleRef = files.filter(f => f.type === FileType.STYLE_REF).find(f => f.id === selectedStyleId);
+    // 获取选中的文笔参考文件的具体内容
+    const styleRefFile = styleRefs.find(f => f.id === selectedStyleId);
 
     try {
-      // 💡 这里的 generateFullScriptOutline 增加传入 styleRef?.content
       const outline = await generateFullScriptOutline(
         novel?.content || "",
         episodeCount,
         focusInstructions,
         mode,
         modelTier,
-        styleRef?.content || "" // 将参考文件内容传给 AI 模仿
+        styleRefFile?.content || "" // 将文笔参考内容传给后端服务
       );
       setGeneratedOutline(outline);
     } catch (err) {
@@ -128,24 +128,6 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
              <h3 className="font-bold text-lg">全书剧本大纲生成</h3>
           </div>
 
-          <div className="space-y-2 pb-2">
-             <h4 className="font-semibold text-slate-800 text-sm">选择 AI 引擎</h4>
-             <div className="grid grid-cols-1 gap-2">
-                <button onClick={() => setModelTier(ModelTier.CREATIVE_PRO)} className={`p-3 rounded-xl text-left border transition-all ${modelTier === ModelTier.CREATIVE_PRO ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-slate-200'}`}>
-                    <span className={`text-sm font-bold flex items-center gap-1 ${modelTier === ModelTier.CREATIVE_PRO ? 'text-indigo-700' : 'text-slate-600'}`}>
-                        <Feather size={14} /> 沉浸文笔版 (推荐)
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-1">深度理解长文本，适合生成 2000字+ 大纲。</p>
-                </button>
-                <button onClick={() => setModelTier(ModelTier.LOGIC_FAST)} className={`p-3 rounded-xl text-left border transition-all ${modelTier === ModelTier.LOGIC_FAST ? 'bg-emerald-50 border-emerald-200 shadow-sm' : 'bg-white border-slate-200'}`}>
-                    <span className={`text-sm font-bold flex items-center gap-1 ${modelTier === ModelTier.LOGIC_FAST ? 'text-emerald-700' : 'text-slate-600'}`}>
-                        <Zap size={14} /> 极速提取版
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-1">处理极其迅速，适合快速梳理剧情骨架。</p>
-                </button>
-             </div>
-          </div>
-
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">1. 选择原著小说</label>
             <select value={selectedNovelId} onChange={(e) => setSelectedNovelId(e.target.value)} className="w-full border-slate-300 rounded-lg py-2.5">
@@ -154,16 +136,22 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
             </select>
           </div>
 
-          {/* 💡 找回来的功能：选择写法参考文件 */}
+          {/* 💡 找回来的核心功能：文笔参考选择 */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
-              <FileText size={14} className="text-emerald-600"/> 2. 模仿写法参考 (可选)
+              <PenTool size={14} className="text-emerald-600"/> 2. 文笔参考 (可选)
             </label>
-            <select value={selectedStyleId} onChange={(e) => setSelectedStyleId(e.target.value)} className="w-full border-emerald-300 rounded-lg py-2.5 bg-emerald-50/30">
+            <select 
+              value={selectedStyleId} 
+              onChange={(e) => setSelectedStyleId(e.target.value)} 
+              className="w-full border-emerald-300 rounded-lg py-2.5 bg-emerald-50/30 text-sm"
+            >
               <option value="">-- 不使用参考 (系统默认) --</option>
               {styleRefs.map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
             </select>
-            <p className="text-[10px] text-slate-400 mt-1">AI 将模仿该文件的结构、语气和脱水深度。</p>
+            <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+              * 关联知识库中的【文笔参考】类别。AI 将模仿该文档的叙事风格、段落节奏及脱水颗粒度。
+            </p>
           </div>
 
           <div>
@@ -181,7 +169,7 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
                     type="number" 
                     value={episodeCount} 
                     onChange={(e) => setEpisodeCount(e.target.value)}
-                    className="w-full border-slate-300 rounded-lg py-2.5 pr-10" 
+                    className="w-full border-slate-300 rounded-lg py-2.5 pr-10 focus:ring-emerald-500 focus:border-emerald-500" 
                     placeholder="例如：80"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">集</span>
@@ -198,7 +186,7 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
             <textarea value={focusInstructions} onChange={(e) => setFocusInstructions(e.target.value)} className="w-full border-slate-300 rounded-lg min-h-[80px] text-sm" placeholder="例如：重点保留主角获得金手指的段落，删掉感情线..." />
           </div>
 
-          <button onClick={handleGenerateOutline} disabled={isGeneratingOutline || !selectedNovelId} className="w-full flex items-center justify-center gap-2 py-4 rounded-lg font-bold shadow-lg transition-all text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 mt-4">
+          <button onClick={handleGenerateOutline} disabled={isGeneratingOutline || !selectedNovelId} className="w-full flex items-center justify-center gap-2 py-4 rounded-lg font-bold shadow-lg transition-all text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 mt-2">
              {isGeneratingOutline ? <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> : <ScrollText size={20} />}
              生成 2000-3000 字全书大纲
           </button>
@@ -207,7 +195,7 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
         </div>
       </div>
 
-      {/* 右侧主内容展示区 */}
+      {/* 右侧展示区保持不变 */}
       <div className="lg:col-span-8">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-full min-h-[700px] flex flex-col">
            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-white">
@@ -219,7 +207,7 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
                 <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors">
                     <Download size={14} />下载 DOC
                 </button>
-                <button onClick={handleSave} disabled={isSaving || !generatedOutline} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-slate-900 text-white hover:bg-black hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100">
+                <button onClick={handleSave} disabled={isSaving || !generatedOutline} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-slate-900 text-white hover:bg-black hover:scale-105 transition-all">
                     <Save size={14} />保存至知识库
                 </button>
              </div>
@@ -230,18 +218,12 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
                 className="w-full h-full p-10 resize-none focus:outline-none font-sans text-base leading-relaxed text-slate-700 bg-slate-50/20"
                 value={generatedOutline}
                 onChange={(e) => setGeneratedOutline(e.target.value)}
-                placeholder="点击左侧按钮，AI 将开始通读原著并开始生成高保真脱水大纲..."
+                placeholder="点击左侧按钮，AI 将开始通读原著并生成高保真脱水大纲..."
              />
-             {!generatedOutline && !isGeneratingOutline && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-40">
-                    <ScrollText size={64} className="text-slate-200 mb-4" />
-                    <p className="text-slate-400">等待 AI 生成剧情骨架</p>
-                </div>
-             )}
              {isGeneratingOutline && (
                 <div className="absolute inset-0 bg-white/60 flex flex-col items-center justify-center backdrop-blur-[1px]">
                     <div className="animate-spin h-10 w-10 border-4 border-emerald-500 border-t-transparent rounded-full mb-4" />
-                    <p className="text-emerald-700 font-medium">正在深度阅读并解析原著中，请稍候...</p>
+                    <p className="text-emerald-700 font-medium">正在解析原著并参考指定文笔风格...</p>
                 </div>
              )}
            </div>
