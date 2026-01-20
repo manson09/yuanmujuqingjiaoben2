@@ -9,7 +9,43 @@ import ProjectHub from './components/ProjectHub'; // 💡 待会需要新建这�
 import { AppStep, KnowledgeFile, FileType, GlobalContextHandler, AgentController, Project, FrequencyMode } from './types';
 
 const App: React.FC = () => {
-  // --- 💡 核心：项目管理状态 ---
+ const [scriptDraft, setScriptDraft] = useState({
+    content: '',      
+    nextRange: '1-3' 
+  });
+
+  // ... 
+  const handleSelectProject = (project: Project) => {
+    setActiveProject(project);
+    setFiles(project.files);
+    
+    setScriptDraft({ content: '', nextRange: '1-3' });
+
+    if (project.files.some(f => f.type === FileType.NOVEL)) {
+      setCurrentStep(AppStep.WORKFLOW_SELECT);
+    } else {
+      setCurrentStep(AppStep.KNOWLEDGE_BASE);
+    }
+  };
+
+  // ...
+
+  const renderContent = () => {
+    switch (currentStep) {
+      // ... 
+      case AppStep.SCRIPT_GENERATOR:
+        return (
+          <ScriptGenerator 
+            files={files} 
+            addGeneratedFile={handleAddGeneratedFile}
+            registerContext={(handler) => setActiveContext(handler)}
+            draft={scriptDraft}
+            onDraftUpdate={(content, nextRange) => setScriptDraft({ content, nextRange })}
+          />
+        );
+      // ...
+    }
+  };
   const [projects, setProjects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('ani_adapt_projects');
     return saved ? JSON.parse(saved) : [];
