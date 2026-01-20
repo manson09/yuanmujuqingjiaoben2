@@ -14,7 +14,6 @@ interface SeasonPlannerProps {
 type TabMode = 'OUTLINE' | 'SYNOPSIS';
 
 const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGeneratedFile, registerContext }) => {
-  // 1. 增加这一段保护逻辑
   if (!files || files.length === 0) {
     return <div className="p-20 text-center text-slate-500">素材库为空，请先上传小说原著。</div>;
   }
@@ -22,9 +21,7 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
   const novels = files.filter(f => f.type === FileType.NOVEL);
   const styleRefs = files.filter(f => f.type === FileType.STYLE_REF); 
 
-  // 2. 修改这一行，初始值给空字符串
   const [selectedNovelId, setSelectedNovelId] = useState<string>('');
-  const [selectedNovelId, setSelectedNovelId] = useState<string>(novels[0]?.id || '');
   const [selectedStyleId, setSelectedStyleId] = useState<string>(''); 
   
   const [episodeCount, setEpisodeCount] = useState('60-100');
