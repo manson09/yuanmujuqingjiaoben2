@@ -30,9 +30,10 @@ async function callOpenRouter(model: string, system: string, user: string, tempe
 - 节奏锚点：全程慢沉节奏铺情绪，结尾精准卡点「关系决裂瞬间 / 真相揭开刹那 / 诛心台词落地 / 对方失态崩溃」，卡在情绪最浓烈、爽感最顶峰的节点收束。`;
 
   const factPreservation = `
-\n【最高创作铁律 - 严禁乱改】
-- 剧情事实：严禁漏掉“穿越”、“系统”、“异世界”等核心背景。
-- 严禁自创：不准增加原著没有的人物或重大剧情，。`;
+\n【最高创作指令 - 专业剧本化】
+1. 【去AI化】：禁止使用“空气中弥漫着”、“显而易见”、“这一刻”等文艺废话。台词要短促、带刺、有攻击性。
+2. 【严禁分镜】：禁止出现任何镜头术语！严禁写「特写、全景、环绕拍摄、推镜头、拉近」等词汇。
+3. 【红线】：严禁复读原著，严禁漏掉“穿越/系统”等核心设定，严禁输出 ## 或 ** 符号。`;
 
   const modeSpecificPrompt = mode === FrequencyMode.MALE ? maleAntiCopy : femaleAntiCopy;
 
