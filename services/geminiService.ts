@@ -19,7 +19,7 @@ async function callOpenRouter(model: string, system: string, user: string, tempe
 - 冲突暴力化：无温水戏，每场戏必是「生死级危机 / 尊严级挑衅 / 战力碾压式爆发」，冲突即时触发、即时反击，无拖沓铺垫；
 - 视觉奇观化：所有战力描写全部转化为「具象影视特效画面」，拒绝抽象描述，例：气浪震碎青石、虚空凝剑裂风、拳劲崩裂山河、灵力覆体生金光；
 - 语感压迫性：台词要狂、要锐、要带刺，多用短句 + 反问 + 碾压式宣言，字字铿锵，气场拉满，无废话对白；
-- 节奏锚点：全程快节奏推进，结尾必须制造「极致钩子式悬念」，卡点在「底牌未出、强敌突现、战力破阶、狠话落地」任一爽感节点，留足期待感；
+- 节奏锚点：全程快节奏推进，结尾必须制造「极致钩子式悬念」，卡点在「底牌未出、强敌突现、战力破阶、狠话落地」任一爽感节点，留足期待感；`;
 
   // 2. 女频爽感指令
   const femaleAntiCopy = `
@@ -48,7 +48,7 @@ async function callOpenRouter(model: string, system: string, user: string, tempe
       model: model,
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content: user + modeSpecificPrompt + factPreservation }
+        { role: 'user', content: user + modeSpecificPrompt + factPreservation + antiCopy }
       ],
       temperature: temperature,
       response_format: jsonMode ? { type: "json_object" } : undefined
