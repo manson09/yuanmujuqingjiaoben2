@@ -5,64 +5,38 @@ import WorkflowSelection from './components/WorkflowSelection';
 import ScriptGenerator from './components/ScriptGenerator';
 import OutlineGenerator from './components/OutlineGenerator';
 import SeasonPlanner from './components/SeasonPlanner';
-import ProjectHub from './components/ProjectHub'; // 💡 待会需要新建这个组件
-import { AppStep, KnowledgeFile, FileType, GlobalContextHandler, AgentController, Project, FrequencyMode } from './types';
+import ProjectHub from './components/ProjectHub';
+import { 
+  AppStep, 
+  KnowledgeFile, 
+  FileType, 
+  GlobalContextHandler, 
+  AgentController, 
+  Project, 
+  FrequencyMode,
+  ScriptSegment // 💡 确保这里导入了 ScriptSegment 类型
+} from './types';
 
 const App: React.FC = () => {
- const [scriptDraft, setScriptDraft] = useState({
-    content: '',      
-    nextRange: '1-3' 
-  });
-
-  // ... 
-  const handleSelectProject = (project: Project) => {
-    setActiveProject(project);
-    setFiles(project.files);
-    
-    setScriptDraft({ content: '', nextRange: '1-3' });
-
-    if (project.files.some(f => f.type === FileType.NOVEL)) {
-      setCurrentStep(AppStep.WORKFLOW_SELECT);
-    } else {
-      setCurrentStep(AppStep.KNOWLEDGE_BASE);
-    }
-  };
-
-  // ...
-
-  const renderContent = () => {
-    switch (currentStep) {
-      // ... 
-      case AppStep.SCRIPT_GENERATOR:
-        return (
-          <ScriptGenerator 
-            files={files} 
-            addGeneratedFile={handleAddGeneratedFile}
-            registerContext={(handler) => setActiveContext(handler)}
-            draft={scriptDraft}
-            onDraftUpdate={(content, nextRange) => setScriptDraft({ content, nextRange })}
-          />
-        );
-      // ...
-    }
-  };
+  // --- 1. 项目管理核心状态 ---
   const [projects, setProjects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('ani_adapt_projects');
     return saved ? JSON.parse(saved) : [];
   });
   const [activeProject, setActiveProject] = useState<Project | null>(null);
-  
-  // 初始步骤设为作品库
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.PROJECT_HUB);
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
   const [activeContext, setActiveContext] = useState<GlobalContextHandler | null>(null);
 
-  // --- 💡 核心：自动持久化保存 ---
+  // --- 2. 💡 剧情脚本精修的持久化状态 (解决内容丢失问题) ---
+  const [scriptSegments, setScriptSegments] = useState<ScriptSegment[]>([]);
+  const [scriptEpisodeStart, setScriptEpisodeStart] = useState<number>(1);
+
+  // --- 3. 持久化保存逻辑 ---
   useEffect(() => {
     localStorage.setItem('ani_adapt_projects', JSON.stringify(projects));
   }, [projects]);
 
-  // 当文件列表变动时，实时同步到当前激活的项目中
   useEffect(() => {
     if (activeProject) {
       setProjects(prev => prev.map(p => 
@@ -73,7 +47,7 @@ const App: React.FC = () => {
     }
   }, [files]);
 
-  // --- 💡 核心：项目操作函数 ---
+  // --- 4. 核心操作函数 ---
   const handleCreateProject = (title: string, mode: FrequencyMode) => {
     const newProj: Project = {
       id: crypto.randomUUID(),
@@ -84,14 +58,20 @@ const App: React.FC = () => {
     };
     setProjects([newProj, ...projects]);
     setActiveProject(newProj);
-    setFiles([]); // 新项目文件为空
+    setFiles([]);
+    setScriptSegments([]); // 重置进度
+    setScriptEpisodeStart(1); // 重置进度
     setCurrentStep(AppStep.KNOWLEDGE_BASE);
   };
 
   const handleSelectProject = (project: Project) => {
     setActiveProject(project);
-    setFiles(project.files); // 加载该项目的文件
-    // 如果已经有小说了，直接去选择工作流，否则去上传
+    setFiles(project.files);
+    
+    // 💡 切换作品时重置脚本进度，防止串台
+    setScriptSegments([]);
+    setScriptEpisodeStart(1);
+
     if (project.files.some(f => f.type === FileType.NOVEL)) {
       setCurrentStep(AppStep.WORKFLOW_SELECT);
     } else {
@@ -100,7 +80,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteProject = (id: string) => {
-    if (window.confirm('确定要删除这个作品吗？所有进度将丢失。')) {
+    if (window.confirm('确定要删除这个作品吗？')) {
       setProjects(prev => prev.filter(p => p.id !== id));
       if (activeProject?.id === id) {
         setActiveProject(null);
@@ -131,9 +111,10 @@ const App: React.FC = () => {
     currentStep: currentStep
   };
 
+  // --- 5. 渲染逻辑 (已整合持久化参数) ---
   const renderContent = () => {
     switch (currentStep) {
-      case AppStep.PROJECT_HUB: // 💡 新增：渲染作品库
+      case AppStep.PROJECT_HUB:
         return (
           <ProjectHub 
             projects={projects}
@@ -166,6 +147,11 @@ const App: React.FC = () => {
             files={files} 
             addGeneratedFile={handleAddGeneratedFile}
             registerContext={(handler) => setActiveContext(handler)}
+            // 💡 必须传这四个参数给子组件，否则会报错
+            segments={scriptSegments}
+            setSegments={setScriptSegments}
+            episodeStart={scriptEpisodeStart}
+            setEpisodeStart={setScriptEpisodeStart}
           />
         );
       case AppStep.OUTLINE_GENERATOR:
