@@ -217,16 +217,22 @@ const FullOutlineGenerator: React.FC<SeasonPlannerProps> = ({ files = [], addGen
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">3. 预计总体量 (集数)</label>
-            <select value={episodeCount} onChange={(e) => setEpisodeCount(e.target.value)} className="w-full border-slate-300 rounded-lg py-2.5">
-                <option value="60">精品短剧 (60集)</option>
-                <option value="100">标准长番 (100集)</option>
-                <option value="150">大长篇 (150+集)</option>
-            </select>
-          </div>
-
-          <div>
+<div>
+  <label className="block text-sm font-medium text-slate-700 mb-1">3. 预计总体量 (手动输入集数)</label>
+  <div className="relative">
+    <input 
+      type="number" 
+      value={episodeCount} 
+      onChange={(e) => setEpisodeCount(e.target.value)}
+      className="w-full border-slate-300 rounded-lg py-2.5 pr-10" 
+      placeholder="例如：80"
+      min="1"
+    />
+    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">
+      集
+    </span>
+  </div>
+</div>
             <div className="flex justify-between items-center mb-1">
                 <label className="block text-sm font-medium text-slate-700">4. 核心脱水指令 (可选)</label>
                 <button onClick={handleAnalyzeFocus} disabled={isAnalyzingFocus || !selectedNovelId} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50">
